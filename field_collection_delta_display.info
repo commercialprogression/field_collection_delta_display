@@ -1,0 +1,4 @@
+name = Field Collection Delta Display
+description = Choose the number of field collections to show in Manage Display.
+core = 7.x
+dependencies[] = field_collection

@@ -1,0 +1,128 @@
+<?php
+/**
+ * @file
+ * Module file for display_image_delta.
+ */
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function field_collection_delta_display_field_formatter_info() {
+  return array(
+    'field_collection_fields_delta' => array(
+      'label' => t('Fields only (delta)'),
+      'field types' => array('field_collection'),
+      'settings' =>  array(
+        'view_mode' => 'full',
+        'max_display' => 0,
+        'delta' => 0,
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_formatter_settings_form().
+ */
+function field_collection_delta_display_field_formatter_settings_form($field, $instance, $view_mode, $form, &$form_state) {
+  $display = $instance['display'][$view_mode];
+  $settings = $display['settings'];
+  $elements = array();
+
+  $entity_type = entity_get_info('field_collection_item');
+  $options = array();
+  foreach ($entity_type['view modes'] as $mode => $info) {
+    $options[$mode] = $info['label'];
+  }
+
+  $elements['view_mode'] = array(
+    '#type' => 'select',
+    '#title' => t('View mode'),
+    '#options' => $options,
+    '#default_value' => $settings['view_mode'],
+    '#description' => t('Select the view mode'),
+  );
+
+  $elements['max_display'] = array(
+    '#title' => t('(Maxium) Number of items to display'),
+    '#type' => 'select',
+    '#default_value' => $settings['max_display'],
+    '#options' => array(
+      0 => 'Unlimited',
+      1 => 1,
+      2 => 2,
+      3 => 3,
+      4 => 4,
+      5 => 5,
+    ),
+    '#required' => TRUE,
+  );
+
+  $elements['delta'] = array(
+    '#title' => t('Text format'),
+    '#type' => 'select',
+    '#default_value' => $settings['delta'],
+    '#options' => array(
+      0 => 0,
+      1 => 1,
+      2 => 2,
+      3 => 3,
+      4 => 4,
+      5 => 5,
+    ),
+    '#required' => TRUE,
+  );
+
+  return $elements;
+}
+
+/**
+ * Implements hook_field_formatter_settings_summary().
+ */
+function field_collection_delta_display_field_formatter_settings_summary($field, $instance, $view_mode) {
+  $display = $instance['display'][$view_mode];
+  $settings = $display['settings'];
+  $output = array();
+
+  $entity_type = entity_get_info('field_collection_item');
+  if (!empty($entity_type['view modes'][$settings['view_mode']]['label'])) {
+    $output[] =  t('View mode: @mode', array('@mode' => $entity_type['view modes'][$settings['view_mode']]['label']));
+  }
+
+  // Add delta values.
+  $output[] = t('Showing @max items, starting at @delta.', array(
+    '@max' => $settings['max_display'],
+    '@delta' => $settings['delta'],
+  ));
+  
+  return implode('<br>', $output);
+}
+
+/**
+ * Implements hook_field_formatter_settings_summary().
+ */
+function field_collection_delta_display_field_formatter_prepare_view($entity_type, $entities, $field, $instances, $langcode, &$items, $displays) {
+  $display = array_shift($displays);
+  $settings = $display['settings'];
+  
+  foreach($items as $delta => $item) {
+    $items[$delta] = array_slice($items[$delta], $settings['delta'], $settings['max_display']);
+  }
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function field_collection_delta_display_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+  $settings = $display['settings'];
+
+  $view_mode = !empty($display['settings']['view_mode']) ? $display['settings']['view_mode'] : 'full';
+  foreach ($items as $delta => $item) {
+    if ($field_collection = field_collection_field_get_entity($item)) {
+      $element[$delta]['entity'] = $field_collection->view($view_mode);
+    }
+  }
+
+  return $element;
+}
